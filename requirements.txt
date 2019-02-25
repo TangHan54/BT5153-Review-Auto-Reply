@@ -1,0 +1,4 @@
+ipython
+pandas
+bs4
+selenium
