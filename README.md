@@ -1,4 +1,5 @@
 # BT5153-Review-Auto-Reply
+Contributors: Derek Li Lingling, Veronica Hu He, Zheng Yiran, Sophia Yue Qi Hui, Jason Chew Guo Jie, Tang Han
 
 This project aims to generate replies to users' reviews automatically with NLP techniques.
 
