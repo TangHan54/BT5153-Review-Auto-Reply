@@ -3,6 +3,7 @@ import time
 from bs4 import BeautifulSoup, Comment
 import pandas as pd
 import re
+import pickle
 
 def scrap(link="https://play.google.com/store/apps/details?id=com.healint.migraineapp&hl=en&showAllReviews=true"):
     SCROLL_PAUSE_TIME = 10
@@ -90,5 +91,7 @@ def scrap(link="https://play.google.com/store/apps/details?id=com.healint.migrai
     output['helpfuls'] = pd.DataFrame(helpfuls)
     output['reviews'] = pd.DataFrame(reviews)
     output['replies'] = pd.DataFrame(replies)
-
-    output.to_csv('data/google_play_review.csv', sep='\t', encoding='utf-8')
+    
+    fpath = 'google_play_review,pickle' 
+    with open(fpath, 'wb') as f:
+        pickle.dump(fpath,f)
