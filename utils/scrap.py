@@ -94,4 +94,4 @@ def scrap(link="https://play.google.com/store/apps/details?id=com.healint.migrai
     
     fpath = 'data/google_play_review.pickle' 
     with open(fpath, 'wb') as f:
-        pickle.dump(fpath,f)
+        pickle.dump(output,f)
