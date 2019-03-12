@@ -92,6 +92,6 @@ def scrap(link="https://play.google.com/store/apps/details?id=com.healint.migrai
     output['reviews'] = pd.DataFrame(reviews)
     output['replies'] = pd.DataFrame(replies)
     
-    fpath = 'google_play_review,pickle' 
+    fpath = 'data/google_play_review.pickle' 
     with open(fpath, 'wb') as f:
         pickle.dump(fpath,f)
