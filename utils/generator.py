@@ -316,7 +316,7 @@ validation_check = ((len(train_reviews))//batch_size//2)-1 # Modulus for checkin
 total_train_loss = 0 # Record the training loss for each display step
 summary_valid_loss = [] # Record the validation loss for saving improvements in the model
 
-checkpoint = "best_model.ckpt" 
+checkpoint = "model/best_model.ckpt" 
 
 sess.run(tf.global_variables_initializer())
 
