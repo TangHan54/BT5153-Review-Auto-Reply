@@ -23,6 +23,8 @@ Place it in the PATH /usr/bin or /usr/local/bin.
 If the PATH is unknown, do the following:
 > echo $PATH
 
+## To generate the 'generator model'
+> python utils/generator.py
 
 ## To do
 requirements.txt
