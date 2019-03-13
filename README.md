@@ -8,6 +8,7 @@ This project aims to generate replies to users' reviews automatically with NLP t
 2. Text Processing.
     - language identification
 3. Modelling.
+    - [Word Embedding](https://www.tensorflow.org/alpha/tutorials/sequences/word_embeddings)
 
 ## Data Source 
 [Migraine Buddy](https://play.google.com/store/apps/details?id=com.healint.migraineapp)
