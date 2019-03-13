@@ -385,3 +385,35 @@ for epoch_i in range(1, epochs+1):
     if stop_early == stop:
         print("Stopping Training.")
         break
+
+# Generate result
+# Create your own input question
+answer_ref = {vocab_reduced[i]:i for i in vocab_reduced.keys()}
+input_question = 'Bad Application hate it annoying do not want use it again'
+
+
+# Prepare the question
+input_question = question_to_seq(input_question, vocab_reduced)
+
+# Pad the questions until it equals the max_line_length
+input_question = input_question + [vocab_reduced["<PAD>"]] * (maxlen - len(input_question))
+# Add empty questions so the the input_data is the correct shape
+batch_shell = np.zeros((batch_size, maxlen))
+# Set the first question to be out input question
+batch_shell[0] = input_question    
+    
+# Run the model with the input question
+answer_logits = sess.run(inference_logits, {input_data: batch_shell, 
+                                            keep_prob: 1.0})[0]
+
+# Remove the padding from the Question and Answer
+pad_q = vocab_reduced["<PAD>"]
+pad_a = vocab_reduced["<PAD>"]
+
+print('Question')
+print('  Word Ids:      {}'.format([answer_ref[i] for i in input_question if i != pad_q]))
+print('  Input Words: {}'.format([answer_ref[i] for i in input_question if i != pad_q]))
+
+print('\nAnswer')
+print('  Word Ids:      {}'.format([answer_ref[i] for i in np.argmax(answer_logits, 1) if i != pad_a]))
+print('  Response Words: {}'.format([answer_ref[i] for i in np.argmax(answer_logits, 1) if i != pad_a]))
