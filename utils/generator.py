@@ -391,6 +391,11 @@ for epoch_i in range(1, epochs+1):
 answer_ref = {vocab_reduced[i]:i for i in vocab_reduced.keys()}
 input_question = 'Bad Application hate it annoying do not want use it again'
 
+def question_to_seq(question, vocab_to_int):
+    '''Prepare the question for the model'''
+     
+    question = clean_text(question)
+    return [vocab_to_int.get(word, vocab_to_int['<UNK>']) for word in question.split()]
 
 # Prepare the question
 input_question = question_to_seq(input_question, vocab_reduced)
