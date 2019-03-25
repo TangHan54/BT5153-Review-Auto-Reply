@@ -9,6 +9,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow as tf
 tf.__version__
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 def model_inputs():
     '''Initialize model inputs'''
     input_data = tf.placeholder(tf.int32, [None, None], name='input')
@@ -255,38 +258,39 @@ for review, reply in review_reply:
 # Reset the graph to ensure that it is ready for training
 tf.reset_default_graph()
 # Start the session
-sess = tf.InteractiveSession()
-    
-# Load the model inputs    
-input_data, targets, lr, keep_prob = model_inputs()
-# Sequence length will be the max line length for each batch
-sequence_length = tf.placeholder_with_default(maxlen, None, name='sequence_length')
-# Find the shape of the input data for sequence_loss
-input_shape = tf.shape(input_data)
+sess = tf.InteractiveSession(config=config)
 
-# Create the training and inference logits
-train_logits, inference_logits = seq2seq_model(
-    tf.reverse(input_data, [-1]), targets, keep_prob, batch_size, sequence_length, len(vocab_reduced), 
-    len(vocab_reduced), encoding_embedding_size, decoding_embedding_size, rnn_size, num_layers, 
-    vocab_reduced)
+with tf.device('/gpu:0'):    
+    # Load the model inputs    
+    input_data, targets, lr, keep_prob = model_inputs()
+    # Sequence length will be the max line length for each batch
+    sequence_length = tf.placeholder_with_default(maxlen, None, name='sequence_length')
+    # Find the shape of the input data for sequence_loss
+    input_shape = tf.shape(input_data)
 
-# Create a tensor for the inference logits, needed if loading a checkpoint version of the model
-tf.identity(inference_logits, 'logits')
+    # Create the training and inference logits
+    train_logits, inference_logits = seq2seq_model(
+        tf.reverse(input_data, [-1]), targets, keep_prob, batch_size, sequence_length, len(vocab_reduced), 
+        len(vocab_reduced), encoding_embedding_size, decoding_embedding_size, rnn_size, num_layers, 
+        vocab_reduced)
 
-with tf.name_scope("optimization"):
-    # Loss function
-    cost = tf.contrib.seq2seq.sequence_loss(
-        train_logits,
-        targets,
-        tf.ones([input_shape[0], sequence_length]))
+    # Create a tensor for the inference logits, needed if loading a checkpoint version of the model
+    tf.identity(inference_logits, 'logits')
 
-    # Optimizer
-    optimizer = tf.train.AdamOptimizer(learning_rate)
+    with tf.name_scope("optimization"):
+        # Loss function
+        cost = tf.contrib.seq2seq.sequence_loss(
+            train_logits,
+            targets,
+            tf.ones([input_shape[0], sequence_length]))
 
-    # Gradient Clipping
-    gradients = optimizer.compute_gradients(cost)
-    capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
-    train_op = optimizer.apply_gradients(capped_gradients)
+        # Optimizer
+        optimizer = tf.train.AdamOptimizer(learning_rate)
+
+        # Gradient Clipping
+        gradients = optimizer.compute_gradients(cost)
+        capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
+        train_op = optimizer.apply_gradients(capped_gradients)
 
 def pad_sentence_batch(sentence_batch, vocab_to_int):
     """Pad sentences with <PAD> so that each sentence of a batch has the same length"""
