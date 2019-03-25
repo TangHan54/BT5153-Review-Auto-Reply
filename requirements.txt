@@ -1,8 +1,0 @@
-ipython
-imbalanced-learn
-pandas
-bs4
-selenium
-tensorflow==1.0.0
-keras
-numpy
