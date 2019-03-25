@@ -1,5 +1,4 @@
 ipython
-imbalanced-learn
 pandas
 bs4
 selenium

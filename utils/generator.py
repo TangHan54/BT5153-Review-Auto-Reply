@@ -4,7 +4,6 @@ import re
 import numpy as np
 import os
 import pandas as pd
-from imblearn.over_sampling import RandomOverSampler
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow as tf
 tf.__version__
@@ -177,12 +176,6 @@ fpath = 'data/google_play_review.pickle'
 with open(fpath, 'rb') as f:
     df = pickle.load(f)
 
-# Over sampling
-ros = RandomOverSampler(random_state=666)
-ros.fit(df[['reviews','replies']],df[['ratings']])
-X,y =  ros.fit_sample(df[['reviews','replies']],df[['ratings']])
-df = pd.DataFrame(X,columns= ['reviews','replies'])
-
 # clean text
 def clean_text(text):
     '''Clean text by removing unnecessary characters and altering the format of words.'''
@@ -327,6 +320,7 @@ checkpoint = "model/best_model.ckpt"
 
 sess.run(tf.global_variables_initializer())
 
+import ipdb; ipdb.set_trace()
 for epoch_i in range(1, epochs+1):
     for batch_i, (questions_batch, answers_batch) in enumerate(
             batch_data(train_reviews, train_replies, batch_size)):
