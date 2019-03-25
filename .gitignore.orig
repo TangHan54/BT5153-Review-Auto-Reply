@@ -1,0 +1,7 @@
+*.pyc
+*.csv
+<<<<<<< HEAD
+*.pickle
+=======
+models/
+>>>>>>> d2ca80bd91721c7ccf5288e85246ecb5312d3ff2

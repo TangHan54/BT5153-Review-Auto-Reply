@@ -1,0 +1,12 @@
+ipython
+imbalanced-learn
+pandas
+bs4
+selenium
+tensorflow==1.0.0
+<<<<<<< HEAD
+keras
+=======
+keras
+numpy
+>>>>>>> d2ca80bd91721c7ccf5288e85246ecb5312d3ff2
