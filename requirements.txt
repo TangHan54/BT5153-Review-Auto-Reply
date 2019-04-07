@@ -6,3 +6,4 @@ selenium
 tensorflow==1.0.0
 keras
 numpy
+subword-nmt

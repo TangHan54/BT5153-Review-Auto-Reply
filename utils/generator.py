@@ -4,6 +4,7 @@ import re
 import numpy as np
 import os
 import pandas as pd
+import pickle
 from imblearn.over_sampling import RandomOverSampler
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow as tf
@@ -163,12 +164,12 @@ def seq2seq_model(input_data, target_data, keep_prob, batch_size, sequence_lengt
     return train_logits, infer_logits
 
 # Set the Hyperparameters
-epochs = 100
+epochs = 10000
 batch_size = 128
-rnn_size = 512
+rnn_size = 32
 num_layers = 2
-encoding_embedding_size = 512
-decoding_embedding_size = 512
+encoding_embedding_size = 32
+decoding_embedding_size = 32
 learning_rate = 0.005
 learning_rate_decay = 0.9
 min_learning_rate = 0.0001
@@ -325,13 +326,15 @@ stop_early = 0
 stop = 5 # If the validation loss does decrease in 5 consecutive checks, stop training
 validation_check = ((len(train_reviews))//batch_size//2)-1 # Modulus for checking validation loss
 total_train_loss = 0 # Record the training loss for each display step
-summary_valid_loss = [] # Record the validation loss for saving improvements in the model
+total_epoch_train_loss = []
+total_epoch_valid_loss = [] # Record the validation loss for saving improvements in the model
 
 checkpoint = "model/best_model.ckpt" 
 
 sess.run(tf.global_variables_initializer())
 
 for epoch_i in range(1, epochs+1):
+    epoch_train_loss = 0
     for batch_i, (questions_batch, answers_batch) in enumerate(
             batch_data(train_reviews, train_replies, batch_size)):
         start_time = time.time()
@@ -343,6 +346,7 @@ for epoch_i in range(1, epochs+1):
              sequence_length: answers_batch.shape[1],
              keep_prob: keep_probability})
 
+        epoch_train_loss += loss
         total_train_loss += loss
         end_time = time.time()
         batch_time = end_time - start_time
@@ -356,45 +360,53 @@ for epoch_i in range(1, epochs+1):
                           total_train_loss / display_step, 
                           batch_time*display_step))
             total_train_loss = 0
-
-        if batch_i % validation_check == 0 and batch_i > 0:
-            total_valid_loss = 0
-            start_time = time.time()
-            for batch_ii, (questions_batch, answers_batch) in \
-                    enumerate(batch_data(valid_reviews, valid_replies, batch_size)):
-                valid_loss = sess.run(
-                cost, {input_data: questions_batch,
-                       targets: answers_batch,
-                       lr: learning_rate,
-                       sequence_length: answers_batch.shape[1],
-                       keep_prob: 1})
-                total_valid_loss += valid_loss
-            end_time = time.time()
-            batch_time = end_time - start_time
-            avg_valid_loss = total_valid_loss / (len(valid_reviews) / batch_size)
-            print('Valid Loss: {:>6.3f}, Seconds: {:>5.2f}'.format(avg_valid_loss, batch_time))
             
             # Reduce learning rate, but not below its minimum value
             learning_rate *= learning_rate_decay
             if learning_rate < min_learning_rate:
                 learning_rate = min_learning_rate
-
-            summary_valid_loss.append(avg_valid_loss)
-            if avg_valid_loss <= min(summary_valid_loss):
-                print('New Record!') 
-                stop_early = 0
-                saver = tf.train.Saver() 
-                saver.save(sess, checkpoint)
-
-            else:
-                print("No Improvement.")
-                stop_early += 1
-                if stop_early == stop:
-                    break
     
+    total_valid_loss = 0
+    start_time = time.time()
+    for batch_ii, (questions_batch, answers_batch) in \
+            enumerate(batch_data(valid_reviews, valid_replies, batch_size)):
+        valid_loss = sess.run(
+        cost, {input_data: questions_batch,
+                targets: answers_batch,
+                lr: learning_rate,
+                sequence_length: answers_batch.shape[1],
+                keep_prob: 1})
+        total_valid_loss += valid_loss
+    end_time = time.time()
+    batch_time = end_time - start_time
+    avg_valid_loss = total_valid_loss / (len(valid_reviews) / batch_size)
+    print('Valid Loss: {:>6.3f}, Seconds: {:>5.2f}'.format(avg_valid_loss, batch_time))
+
+
+    total_epoch_valid_loss = total_epoch_valid_loss.append(avg_valid_loss)
+    total_epoch_train_loss = total_epoch_train_loss.append(epoch_train_loss)
+
+    if avg_valid_loss <= min(total_epoch_valid_loss):
+        print('New Record!') 
+        stop_early = 0
+        saver = tf.train.Saver() 
+        saver.save(sess, checkpoint)
+
+    else:
+        print("No Improvement.")
+        stop_early += 1
+        if stop_early == stop:
+          break
+
     if stop_early == stop:
         print("Stopping Training.")
         break
+
+with open('result/train_loss.pickle', 'wb') as f:
+    pickle.dump(total_epoch_train_loss,f)
+
+with open('result/valid_loss.pickle', 'wb') as f:
+    pickle.dump(total_epoch_valid_loss,f)
 
 # Generate result
 # Create your own input question
