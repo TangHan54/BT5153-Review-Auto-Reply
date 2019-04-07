@@ -10,8 +10,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 import tensorflow as tf
 tf.__version__
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
 
 def model_inputs():
     '''Initialize model inputs'''
@@ -259,39 +257,39 @@ for review, reply in review_reply:
 # Reset the graph to ensure that it is ready for training
 tf.reset_default_graph()
 # Start the session
-sess = tf.InteractiveSession(config=config)
+sess = tf.InteractiveSession()
 
-with tf.device('/gpu:0'):    
-    # Load the model inputs    
-    input_data, targets, lr, keep_prob = model_inputs()
-    # Sequence length will be the max line length for each batch
-    sequence_length = tf.placeholder_with_default(maxlen, None, name='sequence_length')
-    # Find the shape of the input data for sequence_loss
-    input_shape = tf.shape(input_data)
 
-    # Create the training and inference logits
-    train_logits, inference_logits = seq2seq_model(
-        tf.reverse(input_data, [-1]), targets, keep_prob, batch_size, sequence_length, len(vocab_reduced), 
-        len(vocab_reduced), encoding_embedding_size, decoding_embedding_size, rnn_size, num_layers, 
-        vocab_reduced)
+# Load the model inputs    
+input_data, targets, lr, keep_prob = model_inputs()
+# Sequence length will be the max line length for each batch
+sequence_length = tf.placeholder_with_default(maxlen, None, name='sequence_length')
+# Find the shape of the input data for sequence_loss
+input_shape = tf.shape(input_data)
 
-    # Create a tensor for the inference logits, needed if loading a checkpoint version of the model
-    tf.identity(inference_logits, 'logits')
+# Create the training and inference logits
+train_logits, inference_logits = seq2seq_model(
+    tf.reverse(input_data, [-1]), targets, keep_prob, batch_size, sequence_length, len(vocab_reduced), 
+    len(vocab_reduced), encoding_embedding_size, decoding_embedding_size, rnn_size, num_layers, 
+    vocab_reduced)
 
-    with tf.name_scope("optimization"):
-        # Loss function
-        cost = tf.contrib.seq2seq.sequence_loss(
-            train_logits,
-            targets,
-            tf.ones([input_shape[0], sequence_length]))
+# Create a tensor for the inference logits, needed if loading a checkpoint version of the model
+tf.identity(inference_logits, 'logits')
 
-        # Optimizer
-        optimizer = tf.train.AdamOptimizer(learning_rate)
+with tf.name_scope("optimization"):
+    # Loss function
+    cost = tf.contrib.seq2seq.sequence_loss(
+        train_logits,
+        targets,
+        tf.ones([input_shape[0], sequence_length]))
 
-        # Gradient Clipping
-        gradients = optimizer.compute_gradients(cost)
-        capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
-        train_op = optimizer.apply_gradients(capped_gradients)
+    # Optimizer
+    optimizer = tf.train.AdamOptimizer(learning_rate)
+
+    # Gradient Clipping
+    gradients = optimizer.compute_gradients(cost)
+    capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
+    train_op = optimizer.apply_gradients(capped_gradients)
 
 def pad_sentence_batch(sentence_batch, vocab_to_int):
     """Pad sentences with <PAD> so that each sentence of a batch has the same length"""
@@ -383,9 +381,8 @@ for epoch_i in range(1, epochs+1):
     print('Valid Loss: {:>6.3f}, Seconds: {:>5.2f}'.format(avg_valid_loss, batch_time))
 
 
-    total_epoch_valid_loss = total_epoch_valid_loss.append(avg_valid_loss)
-    total_epoch_train_loss = total_epoch_train_loss.append(epoch_train_loss)
-
+    total_epoch_valid_loss.append(avg_valid_loss)
+    total_epoch_train_loss.append(epoch_train_loss)
     if avg_valid_loss <= min(total_epoch_valid_loss):
         print('New Record!') 
         stop_early = 0
@@ -411,7 +408,8 @@ with open('result/valid_loss.pickle', 'wb') as f:
 # Generate result
 # Create your own input question
 answer_ref = {vocab_reduced[i]:i for i in vocab_reduced.keys()}
-input_question = 'Bad Application hate it annoying do not want use it again'
+input_question1 = 'It keeps crashing.'
+input_question2 = "Helpful in keeping track of attacks and possibly triggers."
 
 def question_to_seq(question, vocab_to_int):
     '''Prepare the question for the model'''
@@ -419,28 +417,28 @@ def question_to_seq(question, vocab_to_int):
     question = clean_text(question)
     return [vocab_to_int.get(word, vocab_to_int['<UNK>']) for word in question.split()]
 
-# Prepare the question
-input_question = question_to_seq(input_question, vocab_reduced)
+def reply(input_question):
+    # Prepare the question
+    input_question = question_to_seq(input_question, vocab_reduced)
+    # Pad the questions until it equals the max_line_length
+    input_question = input_question + [vocab_reduced["<PAD>"]] * (maxlen - len(input_question))
+    # Add empty questions so the the input_data is the correct shape
+    batch_shell = np.zeros((batch_size, maxlen))
+    # Set the first question to be out input question
+    batch_shell[0] = input_question    
+    # Run the model with the input question
+    answer_logits = sess.run(inference_logits, {input_data: batch_shell, 
+                                                keep_prob: 1.0})[0]
 
-# Pad the questions until it equals the max_line_length
-input_question = input_question + [vocab_reduced["<PAD>"]] * (maxlen - len(input_question))
-# Add empty questions so the the input_data is the correct shape
-batch_shell = np.zeros((batch_size, maxlen))
-# Set the first question to be out input question
-batch_shell[0] = input_question    
-    
-# Run the model with the input question
-answer_logits = sess.run(inference_logits, {input_data: batch_shell, 
-                                            keep_prob: 1.0})[0]
+    # Remove the padding from the Question and Answer
+    pad_q = vocab_reduced["<PAD>"]
+    pad_a = vocab_reduced["<PAD>"]
 
-# Remove the padding from the Question and Answer
-pad_q = vocab_reduced["<PAD>"]
-pad_a = vocab_reduced["<PAD>"]
+    print('Question')
+    print('  Input Words: {}'.format([answer_ref[i] for i in input_question if i != pad_q]))
 
-print('Question')
-print('  Word Ids:      {}'.format([answer_ref[i] for i in input_question if i != pad_q]))
-print('  Input Words: {}'.format([answer_ref[i] for i in input_question if i != pad_q]))
+    print('\nAnswer')
+    print('  Response Words: {}'.format([answer_ref[i] for i in np.argmax(answer_logits, 1) if i != pad_a]))
 
-print('\nAnswer')
-print('  Word Ids:      {}'.format([answer_ref[i] for i in np.argmax(answer_logits, 1) if i != pad_a]))
-print('  Response Words: {}'.format([answer_ref[i] for i in np.argmax(answer_logits, 1) if i != pad_a]))
+reply(input_question1)
+reply(input_question2)
