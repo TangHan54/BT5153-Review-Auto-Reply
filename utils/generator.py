@@ -163,7 +163,7 @@ def seq2seq_model(input_data, target_data, keep_prob, batch_size, sequence_lengt
 
 # Set the Hyperparameters
 epochs = 10000
-batch_size = 128
+batch_size = 64
 rnn_size = 32
 num_layers = 2
 encoding_embedding_size = 32
@@ -229,7 +229,7 @@ for (i,j) in review_reply:
     all_vob = all_vob + i.split() + j.split()
 
 # Remove rare words from the vocabulary.
-threshold = 5
+threshold = 2
 vocab = {i:all_vob.count(i) for i in set(all_vob)}
 vocab = {word:vocab[word] for word in vocab.keys() if vocab[word] > threshold}
 
@@ -380,9 +380,9 @@ for epoch_i in range(1, epochs+1):
     avg_valid_loss = total_valid_loss / (len(valid_reviews) / batch_size)
     print('Valid Loss: {:>6.3f}, Seconds: {:>5.2f}'.format(avg_valid_loss, batch_time))
 
-
+    avg_train_loss = epoch_train_loss/ (len(train_reviews) / batch_size)
     total_epoch_valid_loss.append(avg_valid_loss)
-    total_epoch_train_loss.append(epoch_train_loss)
+    total_epoch_train_loss.append(avg_train_loss)
     if avg_valid_loss <= min(total_epoch_valid_loss):
         print('New Record!') 
         stop_early = 0
