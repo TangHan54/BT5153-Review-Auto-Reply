@@ -1,5 +1,4 @@
-from utils import scrap
+from utils.generator import seq2seqAttention
 
-# scrap data from google play store
-
-scrap.scrap()
+model = seq2seqAttention()
+model.train()
